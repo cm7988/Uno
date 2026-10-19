@@ -1,1 +1,181 @@
+// Game Core States
+let deck = [];
+let discardPile = [];
+let playerHand = [];
+let cpuHand = [];
+let isPlayerTurn = true;
 
+const colors = ['red', 'blue', 'green', 'yellow'];
+const values = ['0', '1', '2', '3', '4', '5', '6', '7', '8', '9', 'Skip', 'Reverse', '+2'];
+
+// 1. Initialize Game Setup
+function createDeck() {
+    deck = [];
+    // Number and Action Cards
+    colors.forEach(color => {
+        values.forEach(val => {
+            let count = val === '0' ? 1 : 2; 
+            for (let i = 0; i < count; i++) {
+                deck.push({ color, value: val });
+            }
+        });
+    });
+    // Wild Cards
+    for (let i = 0; i < 4; i++) {
+        deck.push({ color: 'wild', value: 'Wild' });
+        deck.push({ color: 'wild', value: '+4' });
+    }
+}
+
+function shuffleDeck() {
+    for (let i = deck.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [deck[i], deck[j]] = [deck[j], deck[i]];
+    }
+}
+
+function dealHands() {
+    playerHand = [];
+    cpuHand = [];
+    for(let i = 0; i < 7; i++) {
+        playerHand.push(deck.pop());
+        cpuHand.push(deck.pop());
+    }
+    // Set up initial face-up discard item
+    let firstCard = deck.pop();
+    while(firstCard.color === 'wild') { 
+        deck.unshift(firstCard);
+        firstCard = deck.pop();
+    }
+    discardPile.push(firstCard);
+}
+
+// 2. Rendering Updates
+function renderBoard() {
+    const playerContainer = document.getElementById('player-hand');
+    const cpuContainer = document.getElementById('cpu-hand');
+    const discardContainer = document.getElementById('discard-pile');
+    
+    playerContainer.innerHTML = '';
+    cpuContainer.innerHTML = '';
+
+    // Render User Cards
+    playerHand.forEach((card, index) => {
+        const cardEl = document.createElement('div');
+        cardEl.className = `card ${card.color}`;
+        cardEl.innerText = card.value;
+        cardEl.onclick = () => playCard(index, true);
+        playerContainer.appendChild(cardEl);
+    });
+
+    // Render Enemy Cards Hidden
+    cpuHand.forEach(() => {
+        const cardEl = document.createElement('div');
+        cardEl.className = 'card deck-back';
+        cardEl.innerText = 'UNO';
+        cpuContainer.appendChild(cardEl);
+    });
+    document.getElementById('cpu-count').innerText = cpuHand.length;
+
+    // Discard Visual Update
+    const topCard = discardPile[discardPile.length - 1];
+    discardContainer.className = `card ${topCard.color}`;
+    discardContainer.innerText = topCard.value;
+}
+
+// 3. Game Validation Rules
+function isValidMove(card) {
+    const topCard = discardPile[discardPile.length - 1];
+    return card.color === 'wild' || 
+           card.color === topCard.color || 
+           card.value === topCard.value;
+}
+
+function playCard(cardIndex, isPlayer) {
+    if (isPlayer !== isPlayerTurn) return;
+
+    const hand = isPlayer ? playerHand : cpuHand;
+    const card = hand[cardIndex];
+
+    if (!isValidMove(card)) {
+        if(isPlayer) alert("Invalid move! Must match Color or Value.");
+        return;
+    }
+
+    // Process Valid Play
+    hand.splice(cardIndex, 1);
+    discardPile.push(card);
+    
+    // Process Simple Special Card Resolution
+    if (card.value === '+2') {
+        const targetHand = isPlayer ? cpuHand : playerHand;
+        targetHand.push(deck.pop(), deck.pop());
+    } else if (card.value === '+4') {
+        const targetHand = isPlayer ? cpuHand : playerHand;
+        targetHand.push(deck.pop(), deck.pop(), deck.pop(), deck.pop());
+    }
+
+    renderBoard();
+
+    if (checkWin(hand, isPlayer ? "You won!" : "CPU won!")) return;
+
+    // Flip Turn
+    isPlayerTurn = !isPlayerTurn;
+    document.getElementById('status-msg').innerText = isPlayerTurn ? "Your Turn!" : "CPU is thinking...";
+
+    if (!isPlayerTurn) {
+        setTimeout(cpuTurn, 1200);
+    }
+}
+
+// 4. Opponent AI Logic
+function cpuTurn() {
+    let playableIndex = cpuHand.findIndex(card => isValidMove(card));
+
+    if (playableIndex !== -1) {
+        // If AI plays a wild card, default it instantly to Red for simplicity
+        if(cpuHand[playableIndex].color === 'wild') {
+            cpuHand[playableIndex].color = 'red'; 
+        }
+        playCard(playableIndex, false);
+    } else {
+        // Draw Card if no options available
+        cpuHand.push(deck.pop());
+        isPlayerTurn = true;
+        document.getElementById('status-msg').innerText = "Your Turn! (CPU passed)";
+        renderBoard();
+    }
+}
+
+function drawCard() {
+    if (!isPlayerTurn) return;
+    playerHand.push(deck.pop());
+    renderBoard();
+    
+    // Pass turn to CPU after drawing
+    isPlayerTurn = false;
+    document.getElementById('status-msg').innerText = "CPU is thinking...";
+    setTimeout(cpuTurn, 1200);
+}
+
+function checkWin(hand, message) {
+    if (hand.length === 0) {
+        alert(message);
+        initGame();
+        return true;
+    }
+    return false;
+}
+
+// Initialize Execution Loop
+function initGame() {
+    createDeck();
+    shuffleDeck();
+    dealHands();
+    isPlayerTurn = true;
+    document.getElementById('status-msg').innerText = "Your Turn!";
+    renderBoard();
+}
+
+document.getElementById('draw-pile').onclick = drawCard;
+initGame();
