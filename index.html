@@ -1,1 +1,30 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Vanilla JS UNO</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div id="game-board">
+        <div class="hand-container">
+            <h2>Opponent Hand (<span id="cpu-count">0</span> cards)</h2>
+            <div id="cpu-hand" class="hand"></div>
+        </div>
 
+        <div id="center-playfield">
+            <div id="draw-pile" class="card deck-back">Draw Pile</div>
+            <div id="discard-pile" class="card"></div>
+        </div>
+
+        <div class="hand-container">
+            <h2>Your Hand</h2>
+            <div id="player-hand" class="hand"></div>
+        </div>
+        
+        <div id="status-msg">Your Turn!</div>
+    </div>
+    <script src="script.js"></script>
+</body>
+</html>
